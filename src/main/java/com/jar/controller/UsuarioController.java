@@ -4,14 +4,17 @@ import com.jar.model.Usuario;
 import com.jar.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpSession; // <--- Import necesario para manejar la sesión
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional; // <--- Import necesario para buscar en el repositorio
 
-@Controller
+@RestController
+@RequestMapping("/api/auth")
+@CrossOrigin(origins = "http://localhost:4200") // Permite conexión desde Angular
 public class UsuarioController {
 
     @Autowired
@@ -24,54 +27,54 @@ public class UsuarioController {
         return "registro";
     }
 
+    // --- REGISTRO ---
     @PostMapping("/registro")
-    public String registrarUsuario(Usuario usuario) {
-
-        String contrasenaIngresada = usuario.getContrasenaHash();
-        if (contrasenaIngresada == null || contrasenaIngresada.isEmpty()) {
-            System.err.println("ERROR DE REGISTRO: La contraseña es nula o vacía.");
-            return "redirect:/registro";
+    public ResponseEntity<?> registrarUsuario(@RequestBody Usuario usuario) {
+        // Validación básica: ver si el email ya existe
+        if (usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
+            return ResponseEntity.badRequest().body("El email ya está registrado");
         }
-        usuario.setContrasenaHash(contrasenaIngresada); 
+
+        // Configuración inicial
         usuario.setFechaCreacion(LocalDateTime.now());
-        usuarioRepository.save(usuario);
-        return "redirect:/login"; 
+        // NOTA DE SEGURIDAD: Aquí deberías encriptar la contraseña en un entorno real.
+        // Por ahora, para el MVP, la guardamos tal cual llega.
+
+        Usuario nuevoUsuario = usuarioRepository.save(usuario);
+        return ResponseEntity.ok(nuevoUsuario);
     }
 
-    // 3. Mostrar el formulario de Login (GET)
-    @GetMapping("/login")
-    public String mostrarFormularioLogin(Model model) {
-        model.addAttribute("usuario", new Usuario());
-        return "login"; 
-    }
-
-    // 4. Procesar el Login (POST)
+    // --- LOGIN CON DIAGNÓSTICO ---
     @PostMapping("/login")
-    public String iniciarSesion(Usuario formUsuario, Model model, HttpSession session) {
-        
-        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(formUsuario.getEmail());
+    public ResponseEntity<?> loginUsuario(@RequestBody Map<String, String> credenciales) {
+        String email = credenciales.get("email");
+        String passwordIngresada = credenciales.get("password");
 
-        if (usuarioOpt.isEmpty()) {
-            model.addAttribute("error", "Email o contraseña incorrectos.");
-            model.addAttribute("usuario", new Usuario());
-            return "login"; 
-        }
+        System.out.println("----- INTENTO DE LOGIN -----");
+        System.out.println("Email recibido: " + email);
+        System.out.println("Password recibida: " + passwordIngresada);
 
-        Usuario usuarioEnBD = usuarioOpt.get();
-        
-        // Simulación de verificación de contraseña
-        if (formUsuario.getContrasenaHash().equals(usuarioEnBD.getContrasenaHash())) {
-            
-            // Guardar el usuario en la sesión
-            session.setAttribute("usuarioLogeado", usuarioEnBD);
-            
-            // Redirigir al Menú Principal
-            return "redirect:/index"; 
+        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
+
+        if (usuarioOpt.isPresent()) {
+            Usuario usuarioEnBD = usuarioOpt.get();
+            String passwordEnBD = usuarioEnBD.getContrasenaHash();
+
+            System.out.println("Usuario encontrado en BD ID: " + usuarioEnBD.getUsuarioID());
+            System.out.println("Password en BD: " + passwordEnBD);
+
+            // Comparación (Texto plano para MVP)
+            if (passwordEnBD != null && passwordEnBD.equals(passwordIngresada)) {
+                System.out.println(">> ¡LOGIN EXITOSO!");
+                return ResponseEntity.ok(usuarioEnBD);
+            } else {
+                System.out.println(">> ERROR: Las contraseñas no coinciden.");
+            }
         } else {
-            model.addAttribute("error", "Email o contraseña incorrectos.");
-            model.addAttribute("usuario", new Usuario());
-            return "login";
+            System.out.println(">> ERROR: Usuario no encontrado con ese email.");
         }
+
+        return ResponseEntity.status(401).body("Credenciales incorrectas");
     }
     
     // 5. Menú Principal (GET)
