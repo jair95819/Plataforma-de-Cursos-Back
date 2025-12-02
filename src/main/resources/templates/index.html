@@ -1,12 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta htpp-equiv="X-UA-Compatible" content="IE=Edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Document</title>
-    </head>
-    <body>
-        <h1>Hola mundo</h1>
-    </body>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Menú Principal - CursoFinder</title>
+</head>
+<body>
+    
+    <h1 th:if="${session.usuarioLogeado}">
+        ¡Bienvenido, <span th:text="${session.usuarioLogeado.nombre}"></span>!
+    </h1>
+    
+    <p>Este es el menú principal donde se listarán los cursos.</p>
+    
+    <br>
+    
+    <div>
+        <a th:href="@{/logout}">
+            <button>Cerrar Sesión</button>
+        </a>
+    </div>
+    
+</body>
 </html>

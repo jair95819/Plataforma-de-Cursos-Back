@@ -37,7 +37,7 @@ public class UsuarioController {
         usuarioRepository.save(usuario);
         return "redirect:/login"; 
     }
-    
+
     // 3. Mostrar el formulario de Login (GET)
     @GetMapping("/login")
     public String mostrarFormularioLogin(Model model) {
@@ -66,7 +66,7 @@ public class UsuarioController {
             session.setAttribute("usuarioLogeado", usuarioEnBD);
             
             // Redirigir al Menú Principal
-            return "redirect:/menu"; 
+            return "redirect:/index"; 
         } else {
             model.addAttribute("error", "Email o contraseña incorrectos.");
             model.addAttribute("usuario", new Usuario());
@@ -75,13 +75,13 @@ public class UsuarioController {
     }
     
     // 5. Menú Principal (GET)
-    @GetMapping("/menu")
+    @GetMapping("/index")
     public String mostrarMenuPrincipal(HttpSession session) {
         // Protección: redirigir si no hay sesión
         if (session.getAttribute("usuarioLogeado") == null) {
-            return "redirect:/login"; 
+            return "redirect:/index"; 
         }
-        return "menu"; 
+        return "index"; 
     }
 
     // 6. Cerrar Sesión (Logout)
